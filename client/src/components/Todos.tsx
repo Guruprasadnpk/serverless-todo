@@ -56,7 +56,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         newTodoName: ''
       })
     } catch {
-      alert('Todo creation failed')
+      if (this.state.newTodoName == '')
+        alert('Provide a todo name')
+      else
+        alert('Todo creation failed')
     }
   }
 
