@@ -54,6 +54,7 @@ export class TodosAccess {
     async updateTodo(userId: string, todoId: string, updatedTodo: TodoUpdate) {
         const params = {
             TableName: this.todosTable,
+            IndexName: todoIdIndex,
             Key: {userId: userId, todoId: todoId},
             UpdateExpression: "set #na = :name, dueDate = :dueDate, done = :done",
             ExpressionAttributeNames: { 

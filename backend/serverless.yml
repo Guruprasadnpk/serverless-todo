@@ -28,28 +28,9 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - dynamodb:Scan
-        - dynamodb:PutItem
-        - dynamodb:GetItem
-        - dynamodb:Query
-        - dynamodb:DeleteItem
-        - dynamodb:UpdateItem
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODO_ID_INDEX}
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:GetObject
-      Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_S3_BUCKET}/*
-    - Effect: Allow
-      Action:
-        - dynamodb:Scan
-        - dynamodb:PutItem
-        - dynamodb:DeleteItem
-      Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+        - xray:PutTelemetryRecords
+        - xray:PutTraceSegments
+      Resource: "*"
     
 custom:
   documentation:
@@ -80,6 +61,16 @@ functions:
           authorizer: Auth
           path: todos
           cors: true
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODO_ID_INDEX}
 
   # TODO: Configure this function
   CreateTodo:
@@ -96,6 +87,12 @@ functions:
             description: Create a new Todo
             requestModels:
               'application/json': CreateTodoRequest
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   UpdateTodo:
@@ -112,6 +109,13 @@ functions:
             description: Update a Todo
             requestModels:
               'application/json': UpdateTodoRequest
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   DeleteTodo:
@@ -122,6 +126,13 @@ functions:
           authorizer: Auth
           path: todos/{todoId}
           cors: true
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -132,18 +143,42 @@ functions:
           authorizer: Auth
           path: todos/{todoId}/attachment
           cors: true
-
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_S3_BUCKET}/*
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        
   ConnectHandler:
     handler: src/lambda/websocket/connect.handler
     events:
       - websocket:
           route: $connect
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
 
   DisconnectHandler:
     handler: src/lambda/websocket/disconnect.handler
     events:
       - websocket:
           route: $disconnect
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DeleteItem
+      Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
 
   SyncWithElasticsearch:
     environment:

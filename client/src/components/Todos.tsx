@@ -56,8 +56,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         newTodoName: ''
       })
     } catch {
-      if (this.state.newTodoName == '')
-        alert('Provide a todo name')
+      if (!this.state.newTodoName.match('^[a-zA-Z0-9].*$'))
+        alert('Please provide a valid todo name. Todo name must begin with an alphanumeric character')
+      else if (this.state.newTodoName.length < 5)
+        alert('Todo name must be atleast 5 characters long')
       else
         alert('Todo creation failed')
     }
